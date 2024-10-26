@@ -1,1 +1,179 @@
+---
+title: "Tarea 2 Macro IV"
+author: "Diego Caro"
+date: "2024-10-15"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r}
+
+
+library("haven")
+
+
+data = read_dta("C:/Users/BIBLIOTECA/OneDrive - Universidad de Chile/Archivos UCH/Octavo Semestre/Macroeconomía IV/Tarea 2/exports-finance.dta")
+
+data$Exp= ifelse(data$exports>0,1,0)
+
+library("plm")
+library(dplyr)
+
+data= pdata.frame(data, index= c("padron", "year"))
+
+
+data <- data %>%
+  group_by(padron) %>%
+  mutate(logl_t1 = lead(logl),
+         dlogl= logl_t1-logl) %>%
+  ungroup()
+
+
+
+regress= plm(dlogl~DF*NF+ DF*Exp+ For +logtfp+logage-DF -NF - Exp, data=data, model= "within")
+
+
+summary(regress)
+
+
+library(stargazer)
+stargazer(regress, type= "text")
+
+
+
+```
+
+
+
+
+```{r}
+
+data$logexports= log(data$exports)
+
+data2= data[data$Exp==1,]
+
+
+data2= pdata.frame(data2, index= c("padron", "year"))
+
+regress_exp= plm(logexports ~DF*NF+ For +logtfp+logage, data=data2, model= "within")
+
+
+
+
+
+data2$logsales= log(data2$sales)
+
+
+
+data2= pdata.frame(data2, index= c("padron", "year"))
+
+regress_local= plm(logsales ~DF*NF+ DF*Exp+ For +logtfp+logage, data=data2, model= "within")
+
+summary(regress_exp)
+
+summary(regress_local)
+
+```
+
+
+
+
+
+
+
+```{r}
+
+
+data$ventas= data$sales+data$exports
+
+data= pdata.frame(data, index= c("padron", "year"))
+
+regress_ventas= plm(log(ventas)~ DF*NF+ For +logtfp+logage+DF*log(exports)+ DF*log(sales), data = data[data$exports>0,], model = "within")
+
+
+summary(regress_ventas)
+
+
+
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+```{r}
+
+
+
+regress_sales1= plm(logsales~For, data=data[data$sales>0,], model= "within")
+
+
+regress_sales2= plm(logsales~DF*NF+ DF*Exp+ For +logtfp+logage, data=data[data$sales>0,], model= "within")
+
+
+
+
+summary(regress_sales1)
+
+summary(regress_sales2)
+
+
+
+
+
+
+
+
+
+```
+
+
+
+
+
+
+
+```{r}
+
+
+data3= data[data$For==1,]
+
+
+data3= pdata.frame(data3, index= c("padron", "year"))
+
+regress_exportadoras= plm(log(ventas)~ DF*NF+ For +logtfp+logage+DF*log(exports)+ DF*log(sales), data = data3[data3$exports>0,], model = "within")
+
+
+regress_noexportadoras= plm(log(ventas)~ DF*NF+ For +logtfp+logage+DF*+ DF*log(sales), data = data3[data3$exports==0,], model = "within")
+
+
+
+
+summary(regress_exportadoras)
+
+summary(regress_noexportadoras)
+
+
+
+
+
+
+```
+
+
+
 
