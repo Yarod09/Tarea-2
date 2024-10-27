@@ -1,1 +1,78 @@
+---
+title: "Tarea"
+author: "Yarod Figueroa"
+date: "2024-10-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(haven)
+library(dplyr)
+library(stargazer)
+library(lfe)
+```
+
+```{r}
+base <- read_dta("exports-finance.dta")
+
+base <- base %>% 
+  arrange(padron, year) %>%
+  group_by(padron) %>%
+  mutate(H = lead(year)-year,
+         Dependiente = ifelse(H == 1, lead(logl) - logl, NA),
+         Exp = ifelse(exports> 0, 1 , 0),
+         DF_NF = DF*NF,
+         DF_Exp = DF*Exp)
+```
+
+#Item 1 
+```{r}
+Reg_1 <- felm( Dependiente ~  DF_NF + DF_Exp + For + logtfp + logage | padron + year,
+               data = base)
+
+stargazer(Reg_1, type = "text")
+```
+
+#Item 2
+```{r}
+base <- base %>% mutate(log_sales = log(sales),
+                        local_sales = ifelse(sales - exports > 0, sales - exports, NA),
+                        l_lsales = ifelse(!is.na(local_sales) & local_sales > 0, log(local_sales), NA),
+                        l_exports = ifelse(!is.na(exports) & exports >0 , log(exports), NA))
+
+reg_2 <- felm(l_exports ~ DF_NF + logage + logtfp + For | padron + year,
+              data = base)
+
+reg_2_1 <- felm(l_lsales ~ DF_NF + logage + logtfp + For | padron + year,
+              data = base)
+
+stargazer(reg_2_1, reg_2, type = "text")
+```
+
+#Item 3
+```{r}
+
+base_item3 <- base %>% filter(For == 1) %>% mutate( DF_For = DF*For)
+
+reg_3 <- felm(log_sales ~ DF*Exp + logage + logtfp | year + padron ,
+              data = base_item3)
+
+stargazer(reg_3 , type = "text")
+
+```
+
+# item 4
+```{r}
+
+probit_Item4<- glm(Exp ~ DF + DF*logl + DF*ciiu3 + DF*logl*ciiu3 +logage + logtfp, 
+                   data = base, 
+                   family = binomial(link = "probit"))
+
+stargazer(probit_Item4, type = "text")
+
+```
 
